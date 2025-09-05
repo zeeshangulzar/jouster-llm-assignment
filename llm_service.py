@@ -46,5 +46,9 @@ def analyze_text_with_llm(text: str) -> tuple[str, dict]:
         
         return summary, metadata
         
+    except HTTPException:
+        # Re-raise HTTPExceptions (like missing API key)
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"LLM analysis failed: {str(e)}")
+        error_msg = str(e) if str(e) else "Unknown error occurred"
+        raise HTTPException(status_code=500, detail=f"LLM analysis failed: {error_msg}")

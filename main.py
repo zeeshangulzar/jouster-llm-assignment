@@ -31,7 +31,12 @@ async def analyze_text(input_data: TextInput):
             created_at=datetime.now().isoformat()
         )
         
+    except HTTPException as e:
+        # Re-raise HTTPExceptions from LLM service
+        print(f"HTTPException caught: {e.detail}")
+        raise
     except Exception as e:
+        print(f"Generic exception caught: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
 @app.get("/search")
