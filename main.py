@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from datetime import datetime
 from models import TextInput, AnalysisResponse
 from database import init_db, save_analysis, search_analyses
-from llm_service import analyze_with_llm, generate_summary
+from llm_service import analyze_text_with_llm
 
 app = FastAPI(title="LLM Knowledge Extractor")
 
@@ -18,11 +18,8 @@ async def analyze_text(input_data: TextInput):
         raise HTTPException(status_code=400, detail="Text input cannot be empty")
     
     try:
-        # Generate summary
-        summary = generate_summary(input_data.text)
-        
-        # Extract metadata
-        metadata = analyze_with_llm(input_data.text)
+        # Generate summary and extract metadata in one API call
+        summary, metadata = analyze_text_with_llm(input_data.text)
         
         # Store in database
         analysis_id = save_analysis(input_data.text, summary, metadata)
