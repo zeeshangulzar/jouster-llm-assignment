@@ -58,6 +58,7 @@ python test.py
 ## API Endpoints
 
 - `POST /analyze` - Analyze text and return structured data
+- `POST /analyze/batch` - Analyze multiple texts at once (up to 10)
 - `GET /search?topic=xyz` - Search analyses by topic
 - `GET /search?keyword=xyz` - Search analyses by keyword
 - `GET /search` - Get all analyses
@@ -69,6 +70,13 @@ python test.py
 curl -X POST "http://localhost:8000/analyze" \
   -H "Content-Type: application/json" \
   -d '{"text": "Your text here"}'
+```
+
+**Analyze multiple texts:**
+```bash
+curl -X POST "http://localhost:8000/analyze/batch" \
+  -H "Content-Type: application/json" \
+  -d '{"texts": ["Text 1", "Text 2", "Text 3"]}'
 ```
 
 **Search analyses:**
