@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Simple test for keyword extraction"""
 
-from main import extract_keywords
+from text_processing import extract_keywords
 
 def test_keywords():
     text = "Artificial intelligence is revolutionizing healthcare"
