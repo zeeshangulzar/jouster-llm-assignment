@@ -11,6 +11,7 @@ A simple FastAPI application that uses OpenAI's GPT-4o-mini to analyze text and 
 - **Database Storage**: SQLite database for persistence
 - **Search API**: Search analyses by topic or keyword
 - **Error Handling**: Handles empty input and LLM API failures
+- **Token Authentication**: Simple API key authentication for all endpoints
 - **Docker Support**: Containerized application
 - **Basic Testing**: Simple test for keyword extraction
 - **Batch Processing**: Process multiple texts at once (up to 10)
@@ -22,6 +23,7 @@ A simple FastAPI application that uses OpenAI's GPT-4o-mini to analyze text and 
 1. Set up environment variables:
 ```bash
 export OPENAI_API_KEY="your_openai_api_key_here"
+export API_TOKEN="your_api_token_here"
 ```
 
 2. Run with Docker Compose:
@@ -39,6 +41,7 @@ pip install -r requirements.txt
 2. Set up environment variables:
 ```bash
 export OPENAI_API_KEY="your_openai_api_key_here"
+export API_TOKEN="your_api_token_here"  # Optional: defaults to "demo-token-123"
 ```
 
 3. Run the application:
@@ -69,6 +72,7 @@ python test.py
 ```bash
 curl -X POST "http://localhost:8000/analyze" \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer demo-token-123" \
   -d '{"text": "Your text here"}'
 ```
 
@@ -76,10 +80,24 @@ curl -X POST "http://localhost:8000/analyze" \
 ```bash
 curl -X POST "http://localhost:8000/analyze/batch" \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer demo-token-123" \
   -d '{"texts": ["Text 1", "Text 2", "Text 3"]}'
 ```
 
 **Search analyses:**
 ```bash
-curl "http://localhost:8000/search?topic=healthcare"
+curl -H "Authorization: Bearer demo-token-123" \
+  "http://localhost:8000/search?topic=healthcare"
 ```
+
+## Authentication
+
+All API endpoints require authentication using a Bearer token in the Authorization header:
+
+```
+Authorization: Bearer <your-token>
+```
+
+- **Default token**: `demo-token-123` (for testing)
+- **Custom token**: Set `API_TOKEN` environment variable
+- **Error responses**: 401 Unauthorized for invalid/missing tokens

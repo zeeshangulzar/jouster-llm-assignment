@@ -1,16 +1,35 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, Header
 from datetime import datetime
 from models import TextInput, AnalysisResponse, BatchTextInput, BatchAnalysisResponse
 from database import init_db, save_analysis, search_analyses
 from llm_service import analyze_text_with_llm
+import os
 
 app = FastAPI(title="LLM Knowledge Extractor")
 
 # Initialize database on startup
 init_db()
 
+# Simple token authentication
+def verify_token(authorization: str = Header(default=None)):
+    """Verify API token from Authorization header"""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header required")
+    
+    # Check if it's a Bearer token
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid authorization format. Use 'Bearer <token>'")
+    
+    token = authorization.split(" ")[1]
+    expected_token = os.getenv("API_TOKEN", "demo-token-123")
+    
+    if token != expected_token:
+        raise HTTPException(status_code=401, detail="Invalid API token")
+    
+    return token
+
 @app.post("/analyze", response_model=AnalysisResponse)
-async def analyze_text(input_data: TextInput):
+async def analyze_text(input_data: TextInput, token: str = Depends(verify_token)):
     """Process text and return analysis"""
     
     # Handle empty input
@@ -40,7 +59,7 @@ async def analyze_text(input_data: TextInput):
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
 @app.post("/analyze/batch", response_model=BatchAnalysisResponse)
-async def analyze_batch_texts(input_data: BatchTextInput):
+async def analyze_batch_texts(input_data: BatchTextInput, token: str = Depends(verify_token)):
     """Process multiple texts at once"""
     
     if not input_data.texts:
@@ -78,7 +97,7 @@ async def analyze_batch_texts(input_data: BatchTextInput):
     return BatchAnalysisResponse(results=results)
 
 @app.get("/search")
-async def search_analyses_endpoint(topic: str = None, keyword: str = None):
+async def search_analyses_endpoint(topic: str = None, keyword: str = None, token: str = Depends(verify_token)):
     """Search analyses by topic or keyword"""
     analyses = search_analyses(topic, keyword)
     return {"analyses": analyses}
