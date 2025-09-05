@@ -45,7 +45,7 @@ def analyze_with_llm(text: str) -> dict:
         client = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
         
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that extracts structured information from text. Return only valid JSON."},
                 {"role": "user", "content": f"""
@@ -79,6 +79,90 @@ class AnalysisResponse(BaseModel):
     summary: str
     metadata: dict
     created_at: str
+
+@app.post("/analyze", response_model=AnalysisResponse)
+async def analyze_text(input_data: TextInput):
+    """Process text and return analysis"""
+    
+    # Handle empty input
+    if not input_data.text.strip():
+        raise HTTPException(status_code=400, detail="Text input cannot be empty")
+    
+    try:
+        # Generate summary
+        client = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+        summary_response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "user", "content": f"Summarize this text in 1-2 sentences: {input_data.text}"}
+            ],
+            max_tokens=100
+        )
+        summary = summary_response.choices[0].message.content
+        
+        # Extract metadata
+        metadata = analyze_with_llm(input_data.text)
+        
+        # Store in database
+        conn = sqlite3.connect('analyses.db')
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO analyses (text_input, summary, metadata)
+            VALUES (?, ?, ?)
+        ''', (input_data.text, summary, json.dumps(metadata)))
+        analysis_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return AnalysisResponse(
+            id=analysis_id,
+            summary=summary,
+            metadata=metadata,
+            created_at="now"
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+
+@app.get("/search")
+async def search_analyses(topic: Optional[str] = None, keyword: Optional[str] = None):
+    """Search analyses by topic or keyword"""
+    conn = sqlite3.connect('analyses.db')
+    cursor = conn.cursor()
+    
+    if topic:
+        cursor.execute('''
+            SELECT id, text_input, summary, metadata, created_at
+            FROM analyses
+            WHERE metadata LIKE ?
+        ''', (f'%{topic}%',))
+    elif keyword:
+        cursor.execute('''
+            SELECT id, text_input, summary, metadata, created_at
+            FROM analyses
+            WHERE metadata LIKE ? OR text_input LIKE ?
+        ''', (f'%{keyword}%', f'%{keyword}%'))
+    else:
+        cursor.execute('''
+            SELECT id, text_input, summary, metadata, created_at
+            FROM analyses
+            ORDER BY created_at DESC
+        ''')
+    
+    results = cursor.fetchall()
+    conn.close()
+    
+    analyses = []
+    for row in results:
+        analyses.append({
+            "id": row[0],
+            "text_input": row[1],
+            "summary": row[2],
+            "metadata": json.loads(row[3]),
+            "created_at": row[4]
+        })
+    
+    return {"analyses": analyses}
 
 if __name__ == "__main__":
     import uvicorn
