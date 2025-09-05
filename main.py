@@ -7,6 +7,7 @@ from collections import Counter
 from typing import List, Optional
 import openai
 import os
+from datetime import datetime
 
 app = FastAPI(title="LLM Knowledge Extractor")
 
@@ -42,9 +43,13 @@ def extract_keywords(text: str) -> List[str]:
 def analyze_with_llm(text: str) -> dict:
     """Use OpenAI to analyze text and extract structured data"""
     try:
-        client = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+        api_key = os.getenv('OPENAI_API_KEY')
+        if not api_key:
+            raise HTTPException(status_code=500, detail="OPENAI_API_KEY environment variable not set")
         
-        response = client.chat.completions.create(
+        openai.api_key = api_key
+        
+        response = openai.ChatCompletion.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that extracts structured information from text. Return only valid JSON."},
@@ -65,6 +70,10 @@ def analyze_with_llm(text: str) -> dict:
         # Add keywords using our custom function
         keywords = extract_keywords(text)
         result['keywords'] = keywords
+        
+        # Add simple confidence score (0.5 to 0.9 based on text length)
+        confidence = min(0.9, 0.5 + (len(text) / 2000) * 0.4)
+        result['confidence'] = round(confidence, 2)
         
         return result
         
@@ -90,8 +99,12 @@ async def analyze_text(input_data: TextInput):
     
     try:
         # Generate summary
-        client = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
-        summary_response = client.chat.completions.create(
+        api_key = os.getenv('OPENAI_API_KEY')
+        if not api_key:
+            raise HTTPException(status_code=500, detail="OPENAI_API_KEY environment variable not set")
+        
+        openai.api_key = api_key
+        summary_response = openai.ChatCompletion.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "user", "content": f"Summarize this text in 1-2 sentences: {input_data.text}"}
@@ -118,7 +131,7 @@ async def analyze_text(input_data: TextInput):
             id=analysis_id,
             summary=summary,
             metadata=metadata,
-            created_at="now"
+            created_at=datetime.now().isoformat()
         )
         
     except Exception as e:

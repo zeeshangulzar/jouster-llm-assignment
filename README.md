@@ -48,10 +48,16 @@ python main.py
 
 The API will be available at `http://localhost:8000`
 
+## Testing
+
+Run the simple test:
+```bash
+python test.py
+```
+
 ## API Endpoints
 
 - `POST /analyze` - Analyze text and return structured data
-- `POST /analyze/batch` - Analyze multiple texts at once (up to 10)
 - `GET /search?topic=xyz` - Search analyses by topic
 - `GET /search?keyword=xyz` - Search analyses by keyword
 - `GET /search` - Get all analyses
@@ -69,4 +75,3 @@ curl -X POST "http://localhost:8000/analyze" \
 ```bash
 curl "http://localhost:8000/search?topic=healthcare"
 ```
-
