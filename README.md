@@ -101,3 +101,25 @@ Authorization: Bearer <your-token>
 - **Default token**: `demo-token-123` (for testing)
 - **Custom token**: Set `API_TOKEN` environment variable
 - **Error responses**: 401 Unauthorized for invalid/missing tokens
+
+## Design Choices
+
+**Architecture & Framework Selection**: I chose FastAPI as the web framework because it provides automatic API documentation, built-in request/response validation through Pydantic models, and excellent async support. The modular structure separates concerns with dedicated files for database operations (`database.py`), LLM integration (`llm_service.py`), text processing (`text_processing.py`), and data models (`models.py`), making the codebase maintainable and testable.
+
+**LLM Integration Strategy**: I implemented a single API call approach where GPT-4o-mini extracts both summary and structured metadata (title, topics, sentiment) in one request, then supplements it with custom keyword extraction and confidence scoring. This reduces API costs and latency compared to multiple calls, while the custom keyword extraction using regex and frequency counting provides more control over the keyword selection process.
+
+**Database Design**: I selected SQLite for simplicity and portability, storing metadata as JSON text to maintain flexibility without complex schema migrations. The search functionality uses simple LIKE queries on the JSON metadata, which works well for the expected scale but could become inefficient with large datasets.
+
+**Authentication & Security**: I implemented a simple Bearer token authentication system with a default demo token, prioritizing ease of testing and development over enterprise-grade security features.
+
+## Trade-offs Made Due to Time Constraints
+
+**Limited Error Handling**: While I included basic error handling for empty inputs and LLM API failures, I didn't implement comprehensive retry logic, rate limiting, or detailed error logging that would be necessary for production use.
+
+**Simple Search Implementation**: The search functionality uses basic SQL LIKE queries instead of full-text search or more sophisticated indexing, which limits search quality and performance as the dataset grows.
+
+**Basic Testing**: I only included a simple test for keyword extraction missing comprehensive unit tests, integration tests, and performance benchmarks that would ensure code quality and reliability.
+
+**Minimal Configuration**: The application uses hardcoded values for many parameters (like the 10-text batch limit, confidence scoring formula, and stop words list) instead of a proper configuration management system.
+
+**No Caching or Optimization**: I didn't implement response caching, database connection pooling, or other performance optimizations that would be important for handling larger workloads efficiently.
